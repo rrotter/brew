@@ -485,7 +485,7 @@ class Tap
     args << "--config" << "core.fsmonitor=false"
 
     begin
-      safe_system "git", *args
+      with_homebrew_path { safe_system "git", *args }
 
       if verify && !Homebrew::EnvConfig.developer? && !Readall.valid_tap?(self, aliases: true)
         raise "Cannot tap #{name}: invalid syntax in tap!"

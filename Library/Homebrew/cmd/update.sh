@@ -60,7 +60,7 @@ git_init_if_necessary() {
     fi
     git config remote.origin.url "${HOMEBREW_BREW_GIT_REMOTE}"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-    git fetch --force --tags origin
+    PATH="${HOMEBREW_PATH}" git fetch --force --tags origin
     git remote set-head origin --auto >/dev/null
     git reset --hard origin/master
     SKIP_FETCH_BREW_REPOSITORY=1
@@ -83,7 +83,7 @@ git_init_if_necessary() {
     fi
     git config remote.origin.url "${HOMEBREW_CORE_GIT_REMOTE}"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-    git fetch --force origin refs/heads/master:refs/remotes/origin/master
+    PATH="${HOMEBREW_PATH}" git fetch --force origin refs/heads/master:refs/remotes/origin/master
     git remote set-head origin --auto >/dev/null
     git reset --hard origin/master
     SKIP_FETCH_CORE_REPOSITORY=1
@@ -523,7 +523,7 @@ EOS
     echo "HOMEBREW_BREW_GIT_REMOTE set: using ${HOMEBREW_BREW_GIT_REMOTE} as the Homebrew/brew Git remote."
     git remote set-url origin "${HOMEBREW_BREW_GIT_REMOTE}"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-    git fetch --force --tags origin
+    PATH="${HOMEBREW_PATH}" git fetch --force --tags origin
     SKIP_FETCH_BREW_REPOSITORY=1
   fi
 
@@ -542,7 +542,7 @@ EOS
     echo "HOMEBREW_CORE_GIT_REMOTE set: using ${HOMEBREW_CORE_GIT_REMOTE} as the Homebrew/homebrew-core Git remote."
     git remote set-url origin "${HOMEBREW_CORE_GIT_REMOTE}"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-    git fetch --force origin refs/heads/master:refs/remotes/origin/master
+    PATH="${HOMEBREW_PATH}" git fetch --force origin refs/heads/master:refs/remotes/origin/master
     SKIP_FETCH_CORE_REPOSITORY=1
   fi
 
@@ -728,11 +728,11 @@ EOS
 
       if [[ -n "${HOMEBREW_UPDATE_AUTO}" ]]
       then
-        git fetch --tags --force "${QUIET_ARGS[@]}" origin \
+        PATH="${HOMEBREW_PATH}" git fetch --tags --force "${QUIET_ARGS[@]}" origin \
           "refs/heads/${UPSTREAM_BRANCH_DIR}:refs/remotes/origin/${UPSTREAM_BRANCH_DIR}" 2>/dev/null
       else
         # Capture stderr to tmp_failure_file
-        if ! git fetch --tags --force "${QUIET_ARGS[@]}" origin \
+        if ! PATH="${HOMEBREW_PATH}" git fetch --tags --force "${QUIET_ARGS[@]}" origin \
            "refs/heads/${UPSTREAM_BRANCH_DIR}:refs/remotes/origin/${UPSTREAM_BRANCH_DIR}" 2>>"${tmp_failure_file}"
         then
           # Reprint fetch errors to stderr
