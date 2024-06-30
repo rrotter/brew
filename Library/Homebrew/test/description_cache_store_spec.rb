@@ -33,6 +33,15 @@ RSpec.describe DescriptionCacheStore do
       expect(database).to receive(:empty?).at_least(:once).and_return(false)
       cache_store.update_from_report!(report)
     end
+
+    context "without HOMEBREW_EVAL_ALL" do
+      before { allow(Homebrew::EnvConfig).to receive(:eval_all?).and_return(false) }
+
+      it "clears the database" do
+        expect(database).to receive(:clear)
+        cache_store.update_from_report!(report)
+      end
+    end
   end
 
   describe "#update_from_formula_names!" do
@@ -45,6 +54,15 @@ RSpec.describe DescriptionCacheStore do
       expect(database).to receive(:empty?).and_return(false)
       expect(database).to receive(:set).with(f.name, f.desc)
       cache_store.update_from_formula_names!([f.name])
+    end
+
+    context "without HOMEBREW_EVAL_ALL" do
+      before { allow(Homebrew::EnvConfig).to receive(:eval_all?).and_return(false) }
+
+      it "clears the database" do
+        expect(database).to receive(:clear)
+        cache_store.update_from_formula_names!([])
+      end
     end
   end
 
@@ -68,6 +86,17 @@ RSpec.describe DescriptionCacheStore do
         expect(database).to receive(:empty?).at_least(:once).and_return(false)
         cache_store.update_from_report!(report)
       end
+
+      context "without HOMEBREW_EVAL_ALL" do
+        before { allow(Homebrew::EnvConfig).to receive(:eval_all?).and_return(false) }
+
+        let(:report) { instance_double(ReporterHub, select_formula_or_cask: [], empty?: false) }
+
+        it "clears the database" do
+          expect(database).to receive(:clear)
+          cache_store.update_from_report!(report)
+        end
+      end
     end
 
     describe "#update_from_cask_tokens!" do
@@ -82,6 +111,15 @@ RSpec.describe DescriptionCacheStore do
         expect(database).to receive(:empty?).and_return(false)
         expect(database).to receive(:set).with(c.full_name, [c.name.join(", "), c.desc.presence])
         cache_store.update_from_cask_tokens!([c.token])
+      end
+
+      context "without HOMEBREW_EVAL_ALL" do
+        before { allow(Homebrew::EnvConfig).to receive(:eval_all?).and_return(false) }
+
+        it "clears the database" do
+          expect(database).to receive(:clear)
+          cache_store.update_from_cask_tokens!([])
+        end
       end
     end
   end

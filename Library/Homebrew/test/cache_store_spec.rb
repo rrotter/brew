@@ -89,6 +89,34 @@ RSpec.describe CacheStoreDatabase do
     end
   end
 
+  describe "#clear" do
+    context "with a database created" do
+      let(:db) { instance_double(Hash, "db", :[] => { foo: "bar" }) }
+
+      before do
+        allow(sample_db).to receive_messages(created?: true, db:)
+      end
+
+      it "clears values in `CacheStoreDatabase`" do
+        expect(db).to receive(:clear)
+        sample_db.clear
+      end
+    end
+
+    context "without a database created" do
+      let(:db) { instance_double(Hash, "db", delete: nil) }
+
+      before do
+        allow(sample_db).to receive_messages(created?: false, db:)
+      end
+
+      it "does not call `db.clear` if `CacheStoreDatabase.created?` is `false`" do
+        expect(db).not_to receive(:clear)
+        sample_db.clear
+      end
+    end
+  end
+
   describe "#write_if_dirty!" do
     context "with an open database" do
       it "does not raise an error when `close` is called on the database" do
