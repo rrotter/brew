@@ -328,6 +328,7 @@ EOS
 }
 
 fetch_tags() {
+  local retry=$1
   local fail_silently="${HOMEBREW_UPDATE_AUTO}"
 
   if [[ -n "${HOMEBREW_VERBOSE}" ]]
@@ -347,6 +348,7 @@ fetch_tags() {
     then
       # Looks like upstream HEAD branch has been renamed.
       echo "${DIR}" >>"${missing_remote_ref_dirs_file}"
+      [[ -z "${retry}" ]] && fail_silently=1
     fi
 
     if [[ -z "${fail_silently}" ]]
@@ -764,9 +766,19 @@ EOS
 
   if [[ -f "${missing_remote_ref_dirs_file}" ]]
   then
-    HOMEBREW_MISSING_REMOTE_REF_DIRS="$(cat "${missing_remote_ref_dirs_file}")"
+    while IFS='' read -r DIR
+    do
+      brew tap --repair ${HOMEBREW_VERBOSE+--verbose} "${DIR#"${HOMEBREW_LIBRARY}"/Taps/}"
+
+      cd "${DIR}"
+      TAP_VAR="$(repository_var_suffix "${DIR}")"
+      UPSTREAM_BRANCH_DIR="$(upstream_branch)"
+      declare UPSTREAM_BRANCH"${TAP_VAR}"="${UPSTREAM_BRANCH_DIR}"
+
+      fetch_tags retry
+    done <"${missing_remote_ref_dirs_file}"
+
     rm -f "${missing_remote_ref_dirs_file}"
-    export HOMEBREW_MISSING_REMOTE_REF_DIRS
   fi
 
   for DIR in "${HOMEBREW_REPOSITORY}" "${HOMEBREW_LIBRARY}"/Taps/*/*
@@ -914,7 +926,6 @@ EOS
   # shellcheck disable=SC2031
   if [[ -n "${HOMEBREW_UPDATED}" ]] ||
      [[ -n "${HOMEBREW_UPDATE_FAILED}" ]] ||
-     [[ -n "${HOMEBREW_MISSING_REMOTE_REF_DIRS}" ]] ||
      [[ -n "${HOMEBREW_UPDATE_FORCE}" ]] ||
      [[ -n "${HOMEBREW_MIGRATE_LINUXBREW_FORMULAE}" ]] ||
      [[ -d "${HOMEBREW_LIBRARY}/LinkedKegs" ]] ||
