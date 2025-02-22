@@ -725,14 +725,15 @@ EOS
       local tmp_failure_file="${DIR}/.git/TMP_FETCH_FAILURES"
       rm -f "${tmp_failure_file}"
 
-      if [[ -n "${HOMEBREW_UPDATE_AUTO}" ]]
+      # Capture stderr to tmp_failure_file
+      if ! git fetch --tags --force "${QUIET_ARGS[@]}" origin \
+         "refs/heads/${UPSTREAM_BRANCH_DIR}:refs/remotes/origin/${UPSTREAM_BRANCH_DIR}" 2>>"${tmp_failure_file}"
       then
-        git fetch --tags --force "${QUIET_ARGS[@]}" origin \
-          "refs/heads/${UPSTREAM_BRANCH_DIR}:refs/remotes/origin/${UPSTREAM_BRANCH_DIR}" 2>/dev/null
-      else
-        # Capture stderr to tmp_failure_file
-        if ! git fetch --tags --force "${QUIET_ARGS[@]}" origin \
-           "refs/heads/${UPSTREAM_BRANCH_DIR}:refs/remotes/origin/${UPSTREAM_BRANCH_DIR}" 2>>"${tmp_failure_file}"
+        if [[ -f "${tmp_failure_file}" ]] &&
+           [[ "$(cat "${tmp_failure_file}")" == "fatal: couldn't find remote ref refs/heads/${UPSTREAM_BRANCH_DIR}" ]]
+        then
+          echo "${DIR}" >>"${missing_remote_ref_dirs_file}"
+        elif [[ -z "${HOMEBREW_UPDATE_AUTO}" ]]
         then
           # Reprint fetch errors to stderr
           [[ -f "${tmp_failure_file}" ]] && cat "${tmp_failure_file}" 1>&2
@@ -743,12 +744,6 @@ EOS
             echo "${TAP} does not exist! Run \`brew untap ${TAP}\` to remove it." >>"${update_failed_file}"
           else
             echo "Fetching ${DIR} failed!" >>"${update_failed_file}"
-
-            if [[ -f "${tmp_failure_file}" ]] &&
-               [[ "$(cat "${tmp_failure_file}")" == "fatal: couldn't find remote ref refs/heads/${UPSTREAM_BRANCH_DIR}" ]]
-            then
-              echo "${DIR}" >>"${missing_remote_ref_dirs_file}"
-            fi
           fi
         fi
       fi
@@ -762,9 +757,29 @@ EOS
 
   if [[ -f "${missing_remote_ref_dirs_file}" ]]
   then
-    HOMEBREW_MISSING_REMOTE_REF_DIRS="$(cat "${missing_remote_ref_dirs_file}")"
+    while IFS='' read -r DIR
+    do
+      cd "${DIR}"
+      TAP_VAR="$(repository_var_suffix "${DIR}")"
+      UPSTREAM_BRANCH_VAR="UPSTREAM_BRANCH${TAP_VAR}"
+      OLD_BRANCH="${!UPSTREAM_BRANCH_VAR}"
+
+      git fetch "${QUIET_ARGS[@]}" origin "+refs/heads/*:refs/remotes/origin/*"
+      git remote set-head origin --auto >/dev/null
+      NEW_BRANCH="$(upstream_branch)"
+
+      git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+      git branch "${QUIET_ARGS[@]}" -m "${OLD_BRANCH}" "${NEW_BRANCH}"
+      git branch "${QUIET_ARGS[@]}" -u "origin/${NEW_BRANCH}" "${NEW_BRANCH}"
+      ohai "${DIR#"${HOMEBREW_LIBRARY}/Taps/"}: changed default branch name from \"${OLD_BRANCH}\" to \"${NEW_BRANCH}\"!" >&2
+      declare UPSTREAM_BRANCH"${TAP_VAR}"="${NEW_BRANCH}"
+
+      # retry fetch
+      git fetch --tags --force "${QUIET_ARGS[@]}" origin \
+        "refs/heads/${NEW_BRANCH}:refs/remotes/origin/${NEW_BRANCH}"
+    done <"${missing_remote_ref_dirs_file}"
+
     rm -f "${missing_remote_ref_dirs_file}"
-    export HOMEBREW_MISSING_REMOTE_REF_DIRS
   fi
 
   for DIR in "${HOMEBREW_REPOSITORY}" "${HOMEBREW_LIBRARY}"/Taps/*/*
