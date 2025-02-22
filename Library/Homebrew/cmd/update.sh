@@ -86,11 +86,6 @@ git_init_if_necessary() {
   fi
 }
 
-fix_remote_configuration() {
-  git fetch "${QUIET_ARGS[@]}" origin "+refs/heads/*:refs/remotes/origin/*"
-  git remote set-head origin --auto
-}
-
 repository_var_suffix() {
   local repository_directory="${1}"
   local repository_var_suffix
@@ -769,12 +764,23 @@ EOS
   then
     while IFS='' read -r DIR
     do
+      echo "HELLO; RYAN!"
       cd "${DIR}"
-      fix_remote_configuration
       TAP_VAR="$(repository_var_suffix "${DIR}")"
       UPSTREAM_BRANCH_VAR="UPSTREAM_BRANCH${TAP_VAR}"
       UPSTREAM_BRANCH="${!UPSTREAM_BRANCH_VAR}"
+
+      git fetch "${QUIET_ARGS[@]}" origin "+refs/heads/*:refs/remotes/origin/*"
+      git remote set-head origin --auto
+
       UPSTREAM_BRANCH_DIR="$(upstream_branch)"
+
+      if [[ "${UPSTREAM_BRANCH}" == "${UPSTREAM_BRANCH_DIR}" ]]
+      then
+        continue
+      fi
+
+      git branch -m "${UPSTREAM_BRANCH}" "${UPSTREAM_BRANCH_DIR}"
       ohai "${TAP_VAR}: changed remote from ${UPSTREAM_BRANCH} to ${UPSTREAM_BRANCH_DIR}" >&2
       declare UPSTREAM_BRANCH"${TAP_VAR}"="${UPSTREAM_BRANCH_DIR}"
 
