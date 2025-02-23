@@ -927,7 +927,6 @@ EOS
   # shellcheck disable=SC2031
   if [[ -n "${HOMEBREW_UPDATED}" ]] ||
      [[ -n "${HOMEBREW_UPDATE_FAILED}" ]] ||
-     [[ -n "${HOMEBREW_MISSING_REMOTE_REF_DIRS}" ]] ||
      [[ -n "${HOMEBREW_UPDATE_FORCE}" ]] ||
      [[ -n "${HOMEBREW_MIGRATE_LINUXBREW_FORMULAE}" ]] ||
      [[ -d "${HOMEBREW_LIBRARY}/LinkedKegs" ]] ||
