@@ -39,13 +39,17 @@ git() {
   "${GIT_EXECUTABLE}" "$@"
 }
 
+# "master" is used here so we get a deterministic branch name, no matter
+# what git version we're using.
 git_init_if_necessary() {
+  local branch_name
+
   safe_cd "${HOMEBREW_REPOSITORY}"
   if [[ ! -d ".git" ]]
   then
     set -e
     trap '{ rm -rf .git; exit 1; }' EXIT
-    git init
+    git -c init.defaultBranch=master init --quiet
     git config --bool core.autocrlf false
     git config --bool core.symlinks true
     if [[ "${HOMEBREW_BREW_DEFAULT_GIT_REMOTE}" != "${HOMEBREW_BREW_GIT_REMOTE}" ]]
@@ -56,7 +60,13 @@ git_init_if_necessary() {
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
     git fetch --force --tags origin
     git remote set-head origin --auto >/dev/null
-    git reset --hard origin/master
+    branch_name="$(upstream_branch)"
+    git reset --hard "origin/${branch_name}"
+    if [[ "${branch_name}" != "master" ]]
+    then
+      git branch -m master "${branch_name}"
+    fi
+    git branch -u "origin/${branch_name}" "${branch_name}"
     SKIP_FETCH_BREW_REPOSITORY=1
     set +e
     trap - EXIT
@@ -68,7 +78,7 @@ git_init_if_necessary() {
   then
     set -e
     trap '{ rm -rf .git; exit 1; }' EXIT
-    git init
+    git -c init.defaultBranch=master init --quiet
     git config --bool core.autocrlf false
     git config --bool core.symlinks true
     if [[ "${HOMEBREW_CORE_DEFAULT_GIT_REMOTE}" != "${HOMEBREW_CORE_GIT_REMOTE}" ]]
@@ -77,9 +87,15 @@ git_init_if_necessary() {
     fi
     git config remote.origin.url "${HOMEBREW_CORE_GIT_REMOTE}"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-    git fetch --force origin refs/heads/master:refs/remotes/origin/master
+    git fetch --force origin
     git remote set-head origin --auto >/dev/null
-    git reset --hard origin/master
+    branch_name="$(upstream_branch)"
+    git reset --hard "origin/${branch_name}"
+    if [[ "${branch_name}" != "master" ]]
+    then
+      git branch -m master "${branch_name}"
+    fi
+    git branch -u "origin/${branch_name}" "${branch_name}"
     SKIP_FETCH_CORE_REPOSITORY=1
     set +e
     trap - EXIT
