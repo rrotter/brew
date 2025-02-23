@@ -764,29 +764,29 @@ EOS
   then
     while IFS='' read -r DIR
     do
-      echo "HELLO; RYAN!"
       cd "${DIR}"
       TAP_VAR="$(repository_var_suffix "${DIR}")"
       UPSTREAM_BRANCH_VAR="UPSTREAM_BRANCH${TAP_VAR}"
-      UPSTREAM_BRANCH="${!UPSTREAM_BRANCH_VAR}"
+      OLD_BRANCH="${!UPSTREAM_BRANCH_VAR}"
 
       git fetch "${QUIET_ARGS[@]}" origin "+refs/heads/*:refs/remotes/origin/*"
       git remote set-head origin --auto
 
-      UPSTREAM_BRANCH_DIR="$(upstream_branch)"
+      NEW_BRANCH="$(upstream_branch)"
 
-      if [[ "${UPSTREAM_BRANCH}" == "${UPSTREAM_BRANCH_DIR}" ]]
+      if [[ "${OLD_BRANCH}" == "${NEW_BRANCH}" ]]
       then
+        echo "WTF?!"
         continue
       fi
 
-      git branch -m "${UPSTREAM_BRANCH}" "${UPSTREAM_BRANCH_DIR}"
-      ohai "${TAP_VAR}: changed remote from ${UPSTREAM_BRANCH} to ${UPSTREAM_BRANCH_DIR}" >&2
-      declare UPSTREAM_BRANCH"${TAP_VAR}"="${UPSTREAM_BRANCH_DIR}"
+      git branch -m "${OLD_BRANCH}" "${NEW_BRANCH}"
+      ohai "${DIR}: changed remote from \"${OLD_BRANCH}\" to \"${NEW_BRANCH}\"" >&2
+      declare UPSTREAM_BRANCH"${TAP_VAR}"="${NEW_BRANCH}"
 
       # retry fetch
       git fetch --tags --force "${QUIET_ARGS[@]}" origin \
-          "refs/heads/${UPSTREAM_BRANCH_DIR}:refs/remotes/origin/${UPSTREAM_BRANCH_DIR}"
+          "refs/heads/${NEW_BRANCH}:refs/remotes/origin/${NEW_BRANCH}"
     done <"${missing_remote_ref_dirs_file}"
 
     rm -f "${missing_remote_ref_dirs_file}"
