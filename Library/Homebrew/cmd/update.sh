@@ -522,8 +522,6 @@ EOS
     echo "HOMEBREW_BREW_GIT_REMOTE set: using ${HOMEBREW_BREW_GIT_REMOTE} as the Homebrew/brew Git remote."
     git remote set-url origin "${HOMEBREW_BREW_GIT_REMOTE}"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-    git fetch --force --tags origin
-    SKIP_FETCH_BREW_REPOSITORY=1
   fi
 
   if [[ -d "${HOMEBREW_CORE_REPOSITORY}" ]] &&
@@ -541,8 +539,6 @@ EOS
     echo "HOMEBREW_CORE_GIT_REMOTE set: using ${HOMEBREW_CORE_GIT_REMOTE} as the Homebrew/homebrew-core Git remote."
     git remote set-url origin "${HOMEBREW_CORE_GIT_REMOTE}"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
-    git fetch --force origin refs/heads/master:refs/remotes/origin/master
-    SKIP_FETCH_CORE_REPOSITORY=1
   fi
 
   safe_cd "${HOMEBREW_REPOSITORY}"
