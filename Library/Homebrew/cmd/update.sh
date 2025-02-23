@@ -725,14 +725,15 @@ EOS
       local tmp_failure_file="${DIR}/.git/TMP_FETCH_FAILURES"
       rm -f "${tmp_failure_file}"
 
-      if [[ -n "${HOMEBREW_UPDATE_AUTO}" ]]
+      # Capture stderr to tmp_failure_file
+      if ! git fetch --tags --force "${QUIET_ARGS[@]}" origin \
+         "refs/heads/${UPSTREAM_BRANCH_DIR}:refs/remotes/origin/${UPSTREAM_BRANCH_DIR}" 2>>"${tmp_failure_file}"
       then
-        git fetch --tags --force "${QUIET_ARGS[@]}" origin \
-          "refs/heads/${UPSTREAM_BRANCH_DIR}:refs/remotes/origin/${UPSTREAM_BRANCH_DIR}" 2>/dev/null
-      else
-        # Capture stderr to tmp_failure_file
-        if ! git fetch --tags --force "${QUIET_ARGS[@]}" origin \
-           "refs/heads/${UPSTREAM_BRANCH_DIR}:refs/remotes/origin/${UPSTREAM_BRANCH_DIR}" 2>>"${tmp_failure_file}"
+        if [[ -f "${tmp_failure_file}" ]] &&
+           [[ "$(cat "${tmp_failure_file}")" == "fatal: couldn't find remote ref refs/heads/${UPSTREAM_BRANCH_DIR}" ]]
+        then
+          echo "${DIR}" >>"${missing_remote_ref_dirs_file}"
+        elif [[ -z "${HOMEBREW_UPDATE_AUTO}" ]]
         then
           # Reprint fetch errors to stderr
           [[ -f "${tmp_failure_file}" ]] && cat "${tmp_failure_file}" 1>&2
