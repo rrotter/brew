@@ -213,11 +213,13 @@ merge_or_rebase() {
   local DIR
   local TAP_VAR
   local UPSTREAM_BRANCH
+  local UPSTREAM_DEFAULT_BRANCH
 
   DIR="$1"
   cd "${DIR}" || return
   TAP_VAR="$2"
   UPSTREAM_BRANCH="$3"
+  UPSTREAM_DEFAULT_BRANCH="${UPSTREAM_BRANCH}"
   unset STASHED
 
   trap reset_on_interrupt SIGINT
@@ -276,10 +278,10 @@ EOS
     then
       git checkout --force "${UPSTREAM_BRANCH}" "${QUIET_ARGS[@]}"
     else
-      if [[ -n "${UPSTREAM_TAG}" && "${UPSTREAM_BRANCH}" != "master" ]] &&
-         [[ "${INITIAL_BRANCH}" != "master" ]]
+      if [[ -n "${UPSTREAM_TAG}" && "${UPSTREAM_BRANCH}" != "${UPSTREAM_DEFAULT_BRANCH}" ]] &&
+         [[ "${INITIAL_BRANCH}" != "${UPSTREAM_DEFAULT_BRANCH}" ]]
       then
-        git branch --force "master" "origin/master" "${QUIET_ARGS[@]}"
+        git branch --force "${UPSTREAM_DEFAULT_BRANCH}" "origin/${UPSTREAM_DEFAULT_BRANCH}" "${QUIET_ARGS[@]}"
       fi
 
       git checkout --force -B "${UPSTREAM_BRANCH}" "${REMOTE_REF}" "${QUIET_ARGS[@]}"
