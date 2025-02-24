@@ -260,7 +260,7 @@ merge_or_rebase() {
 Could not 'git stash' in ${DIR}!
 Please stash/commit manually if you need to keep your changes or, if not, run:
   cd ${DIR}
-  git reset --hard origin/master
+  git reset --hard origin/${UPSTREAM_DEFAULT_BRANCH}
 EOS
     fi
     git reset --hard "${QUIET_ARGS[@]}"
