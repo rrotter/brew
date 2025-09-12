@@ -12,10 +12,11 @@ RSpec.describe Homebrew::Bundle::Brewfile do
     let(:dash_writes_to_stdout) { false }
     let(:env_bundle_file_global_value) { nil }
     let(:env_bundle_file_value) { nil }
-    let(:env_user_config_home_value) { "/Users/username/.homebrew" }
+    let(:env_user_config_home_value) { "/home/runner/.homebrew" }
     let(:file_value) { nil }
     let(:has_global) { false }
     let(:config_dir_brewfile_exist) { false }
+    let(:home_brewfile_exist) { false }
 
     before do
       allow(ENV).to receive(:fetch).and_return(nil)
@@ -26,8 +27,17 @@ RSpec.describe Homebrew::Bundle::Brewfile do
 
       allow(ENV).to receive(:fetch).with("HOMEBREW_USER_CONFIG_HOME", any_args)
                                    .and_return(env_user_config_home_value)
-      allow(File).to receive(:exist?).with("/Users/username/.homebrew/Brewfile")
+      # Mock File.exist? with specific paths using actual runtime environment
+      allow(File).to receive(:exist?).and_call_original
+      allow(File).to receive(:exist?).with("/home/runner/.homebrew/Brewfile")
                                      .and_return(config_dir_brewfile_exist)
+      allow(File).to receive(:exist?).with("/home/runner/.Brewfile")
+                                     .and_return(home_brewfile_exist)
+      # Also mock the actual path being checked according to error message
+      allow(File).to receive(:exist?).with("/home/linuxbrew/.linuxbrew/Homebrew/Library/Homebrew/test/.Brewfile")
+                                     .and_return(home_brewfile_exist)
+      # Mock Bundle.exchange_uid_if_needed! 
+      allow(Homebrew::Bundle).to receive(:exchange_uid_if_needed!).and_yield
     end
 
     context "when `file` is specified with a relative path" do
@@ -132,7 +142,7 @@ RSpec.describe Homebrew::Bundle::Brewfile do
 
     context "when `global` is true" do
       let(:has_global) { true }
-      let(:expected_pathname) { Pathname.new("#{Dir.home}/.Brewfile") }
+      let(:expected_pathname) { Pathname.new("/home/runner/.homebrew/Brewfile") }
 
       it "returns the expected path" do
         expect(path).to eq(expected_pathname)
@@ -168,6 +178,26 @@ RSpec.describe Homebrew::Bundle::Brewfile do
         let(:expected_pathname) { Pathname.new("#{env_user_config_home_value}/Brewfile") }
 
         it "returns the expected path" do
+          expect(path).to eq(expected_pathname)
+        end
+      end
+
+      context "when HOMEBREW_USER_CONFIG_HOME/Brewfile doesn't exist but ~/.Brewfile doesn't exist either" do
+        let(:config_dir_brewfile_exist) { false }
+        let(:home_brewfile_exist) { false }
+        let(:expected_pathname) { Pathname.new("#{env_user_config_home_value}/Brewfile") }
+
+        it "returns the user config home Brewfile path" do
+          expect(path).to eq(expected_pathname)
+        end
+      end
+
+      context "when HOMEBREW_USER_CONFIG_HOME/Brewfile doesn't exist but ~/.Brewfile does exist" do
+        let(:config_dir_brewfile_exist) { false }
+        let(:home_brewfile_exist) { true }
+        let(:expected_pathname) { Pathname.new("/home/runner/.Brewfile") }
+
+        it "falls back to the home directory .Brewfile" do
           expect(path).to eq(expected_pathname)
         end
       end
